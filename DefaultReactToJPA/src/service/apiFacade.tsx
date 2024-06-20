@@ -1,42 +1,74 @@
 const endpoint = "http://localhost:1337";
 
-interface Entity1 {
+export interface ParentEntity {
   id: number;
   name: string;
+  childEntities: ChildEntity[];
 }
 
-async function getAllEntity1() {
-  const res = await fetch(endpoint + "/entity1");
-  return res.json() as Promise<Entity1[]>; // Type assertion
+export interface ChildEntity {
+  id: number;
+  name: string;
+  parentEntityId: number;
 }
 
-async function addEntity1(name: string) {
-  const res = await fetch(endpoint + "/entity1", {
+export async function getAllParentEntities() {
+  const res = await fetch(endpoint + "/parent-entities");
+  return res.json() as Promise<ParentEntity[]>;
+}
+
+export async function addParentEntity(name: string) {
+  const res = await fetch(endpoint + "/parent-entities", {
     method: "POST",
     body: JSON.stringify({ name }),
     headers: {
       "Content-Type": "application/json",
     },
   });
-  return res.json() as Promise<Entity1>; // Type assertion
+  return res.json() as Promise<ParentEntity>;
 }
 
-async function deleteEntity1(id: number) {
-  await fetch(`${endpoint}/entity1/${id}`, {
+export async function deleteParentEntity(id: number) {
+  await fetch(`${endpoint}/parent-entities/${id}`, {
     method: "DELETE",
   });
 }
 
-async function editEntity1(id: number, name: string) {
-  const res = await fetch(`${endpoint}/entity1/${id}`, {
+export async function editParentEntity(id: number, name: string) {
+  const res = await fetch(`${endpoint}/parent-entities/${id}`, {
     method: "PUT",
     body: JSON.stringify({ name }),
     headers: {
       "Content-Type": "application/json",
     },
   });
-  return res.json() as Promise<Entity1>;
+  return res.json() as Promise<ParentEntity>;
 }
 
-export { getAllEntity1, addEntity1, deleteEntity1, editEntity1 };
-export type { Entity1 };
+export async function addChildEntity(parentId: number, name: string) {
+  const res = await fetch(`${endpoint}/child-entities/${parentId}`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  return res.json() as Promise<ChildEntity>;
+}
+
+export async function deleteChildEntity(parentId: number, childId: number) {
+  await fetch(`${endpoint}/child-entities/${parentId}/${childId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function editChildEntity(parentId: number, childId: number, name: string) {
+  const res = await fetch(`${endpoint}/child-entities/${parentId}/${childId}`, {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  return res.json() as Promise<ChildEntity>;
+}

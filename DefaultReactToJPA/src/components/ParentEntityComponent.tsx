@@ -1,17 +1,17 @@
-import { getAllEntity1, addEntity1, deleteEntity1, editEntity1 } from "../service/apiFacade";
-import { Entity1 } from "../service/apiFacade";
-import NavHeader from "../components/NavHeader";
+import { getAllParentEntities, addParentEntity, deleteParentEntity, editParentEntity } from "../service/apiFacade";
+import { ParentEntity } from "../service/apiFacade";
 import { useEffect, useState } from "react";
+import ChildEntityComponent from "./ChildEntityComponent";
 
-export default function Entity1Page() {
-  const [entity1, setEntity1] = useState<Entity1[]>([]);
+export default function ParentEntityComponent() {
+  const [parentEntities, setParentEntities] = useState<ParentEntity[]>([]);
   const [name, setName] = useState<string>("");
   const [editId, setEditId] = useState<number | null>(null);
 
   useEffect(() => {
-    getAllEntity1().then((data) => {
+    getAllParentEntities().then((data) => {
       console.log(data);
-      setEntity1(data);
+      setParentEntities(data);
     });
   }, []);
 
@@ -22,34 +22,33 @@ export default function Entity1Page() {
       return;
     }
     if (editId !== null) {
-      const updatedEntity1 = await editEntity1(editId, name);
-      setEntity1(entity1.map((entity) => (entity.id === editId ? updatedEntity1 : entity)));
+      const updatedParentEntity = await editParentEntity(editId, name);
+      setParentEntities(parentEntities.map((entity) => (entity.id === editId ? updatedParentEntity : entity)));
       setEditId(null);
     } else {
-      const newEntity1 = await addEntity1(name);
-      setEntity1([...entity1, newEntity1]);
+      const newParentEntity = await addParentEntity(name);
+      setParentEntities([...parentEntities, newParentEntity]);
     }
     setName(""); // Clear the input field
   };
 
   const handleDelete = async (id: number) => {
-    await deleteEntity1(id);
-    setEntity1(entity1.filter((entity) => entity.id !== id));
+    await deleteParentEntity(id);
+    setParentEntities(parentEntities.filter((entity) => entity.id !== id));
   };
 
-  const handleEdit = (entity: Entity1) => {
+  const handleEdit = (entity: ParentEntity) => {
     setName(entity.name);
     setEditId(entity.id);
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <NavHeader />
       <div className="container mx-auto p-4">
-        <h1 className="text-4xl font-bold">Entity1</h1>
-        <ul>
-          {entity1.map((entity) => (
-            <li key={entity.id} className="flex justify-between items-center mb-2">
+        <h1 className="text-4xl font-bold">Parents</h1>
+        {parentEntities.map((entity) => (
+          <div key={entity.id}>
+            <p className="flex justify-between items-center mb-2">
               <span>
                 {entity.id} {entity.name}
               </span>
@@ -61,9 +60,10 @@ export default function Entity1Page() {
                   Delete
                 </button>
               </div>
-            </li>
-          ))}
-        </ul>
+            </p>
+            <ChildEntityComponent parentId={entity.id} />
+          </div>
+        ))}
         <form onSubmit={handleSubmit} className="mt-4">
           <label className="block mb-2">Name:</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="border rounded px-2 py-1 mb-2 bg-gray-800 text-white" />

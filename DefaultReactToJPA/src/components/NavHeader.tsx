@@ -7,7 +7,7 @@ export default function NavHeader() {
         <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
           <NavItem pathLink="/about" itemName="About" />
           <NavItem pathLink="/" itemName="Home" />
-          <NavItem pathLink="/entity1page" itemName="Entity1Page" />
+          <NavItem pathLink="/overview" itemName="Overview" />
         </div>
       </nav>
     </>
