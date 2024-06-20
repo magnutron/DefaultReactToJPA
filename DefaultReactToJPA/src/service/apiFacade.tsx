@@ -8,21 +8,23 @@ export interface Participant {
   dateOfBirth: string; // Changed from age to dateOfBirth
   club: string;
   disciplines: Discipline[];
+  results: Result[];
 }
 
 export interface Discipline {
   id: number;
   name: string;
   resultType: string;
+  participants: Participant[];
+  results: Result[];
 }
 
 export interface Result {
   id: number;
-  resultType: string;
+  resultValue: string; // Changed from resultType to resultValue
   date: string;
-  resultValue: string;
-  participantId: number;
-  disciplineId: number;
+  participant: Participant;
+  discipline: Discipline;
 }
 
 // Participant API
@@ -31,10 +33,10 @@ export async function getAllParticipants() {
   return res.json() as Promise<Participant[]>;
 }
 
-export async function addParticipant(participant: Omit<Participant, "id" | "disciplines">, disciplineIds: number[]) {
+export async function addParticipant(participant: Omit<Participant, "id" | "disciplines" | "results">, disciplineIds: number[] = [], resultIds: number[] = []) {
   const res = await fetch(endpoint + "/participants", {
     method: "POST",
-    body: JSON.stringify({ ...participant, disciplineIds }),
+    body: JSON.stringify({ ...participant, disciplineIds, resultIds }),
     headers: {
       "Content-Type": "application/json",
     },
@@ -48,7 +50,7 @@ export async function deleteParticipant(id: number) {
   });
 }
 
-export async function editParticipant(id: number, participant: Omit<Participant, "id" | "disciplines">, disciplineIds: number[]) {
+export async function editParticipant(id: number, participant: Omit<Participant, "id" | "disciplines" | "results">, disciplineIds: number[]) {
   const res = await fetch(`${endpoint}/participants/${id}`, {
     method: "PUT",
     body: JSON.stringify({ ...participant, disciplineIds }),
@@ -60,7 +62,7 @@ export async function editParticipant(id: number, participant: Omit<Participant,
 }
 
 export const removeDisciplineFromParticipant = async (participantId: number, disciplineId: number): Promise<Participant> => {
-  const response = await fetch(`/participants/${participantId}/disciplines/${disciplineId}`, {
+  const response = await fetch(`${endpoint}/participants/${participantId}/disciplines/${disciplineId}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -78,7 +80,7 @@ export async function getAllDisciplines() {
   return res.json() as Promise<Discipline[]>;
 }
 
-export async function addDiscipline(discipline: Omit<Discipline, "id">) {
+export async function addDiscipline(discipline: Omit<Discipline, "id" | "participants" | "results">) {
   const res = await fetch(endpoint + "/disciplines", {
     method: "POST",
     body: JSON.stringify(discipline),
@@ -95,7 +97,7 @@ export async function deleteDiscipline(id: number) {
   });
 }
 
-export async function editDiscipline(id: number, discipline: Omit<Discipline, "id">) {
+export async function editDiscipline(id: number, discipline: Omit<Discipline, "id" | "participants" | "results">) {
   const res = await fetch(`${endpoint}/disciplines/${id}`, {
     method: "PUT",
     body: JSON.stringify(discipline),
