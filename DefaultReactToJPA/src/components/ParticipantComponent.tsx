@@ -98,24 +98,38 @@ export default function ParticipantComponent() {
 
   const handleSave = async () => {
     if (editingParticipant) {
-      const updatedParticipant = await editParticipant(editingParticipant.id, {
-        ...editingParticipant,
+      const formattedDisciplines = editingParticipantDisciplines.map((discipline) => ({
+        id: discipline.id,
+        name: discipline.name,
+        resultType: discipline.resultType, // Ensure all needed properties are included
+      }));
+
+      const participantData = {
         name,
         gender,
         dateOfBirth,
         club,
-        disciplines: editingParticipantDisciplines,
-      });
-      const updatedParticipants = participants.map((participant) => (participant.id === updatedParticipant.id ? updatedParticipant : participant));
-      setParticipants(updatedParticipants);
-      setFilteredParticipants(updatedParticipants); // Update filteredParticipants after saving edits
-      setEditingParticipant(null);
-      setName("");
-      setGender("Male");
-      setDateOfBirth("");
-      setClub("");
-      setEditingParticipantDisciplines([]);
-      setShowDisciplineOptions(false);
+        disciplines: formattedDisciplines,
+      };
+
+      try {
+        const updatedParticipant = await editParticipant(editingParticipant.id, participantData);
+        // Update the participants list with the updated data
+        setParticipants((prevParticipants) => prevParticipants.map((p) => (p.id === updatedParticipant.id ? updatedParticipant : p)));
+        setFilteredParticipants((prevParticipants) => prevParticipants.map((p) => (p.id === updatedParticipant.id ? updatedParticipant : p)));
+
+        // Reset the form and editing state
+        setEditingParticipant(null);
+        setName("");
+        setGender("Male");
+        setDateOfBirth("");
+        setClub("");
+        setEditingParticipantDisciplines([]);
+        setShowDisciplineOptions(false);
+      } catch (error) {
+        console.error("Failed to update participant:", error);
+        // Optionally handle errors, such as displaying a message to the user
+      }
     }
   };
 

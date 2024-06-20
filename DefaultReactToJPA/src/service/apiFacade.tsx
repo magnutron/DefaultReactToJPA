@@ -50,10 +50,10 @@ export async function deleteParticipant(id: number) {
   });
 }
 
-export async function editParticipant(id: number, participant: Omit<Participant, "id" | "disciplines" | "results">, disciplineIds: number[]) {
+export async function editParticipant(id: number, participant: Participant) {
   const res = await fetch(`${endpoint}/participants/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ ...participant, disciplineIds }),
+    body: JSON.stringify(participant),
     headers: {
       "Content-Type": "application/json",
     },
