@@ -67,7 +67,7 @@ export default function ParticipantComponent() {
       alert("All fields must be filled");
       return;
     }
-    const participantData = { name, gender, dateOfBirth, club, disciplines: selectedDisciplines };
+    const participantData = { name, gender, dateOfBirth, club, disciplines: selectedDisciplines, results: [] };
     const newParticipant = await addParticipant(participantData);
     setParticipants([...participants, newParticipant]);
     setFilteredParticipants([...participants, newParticipant]); // Also add to filteredParticipants
@@ -101,15 +101,20 @@ export default function ParticipantComponent() {
       const formattedDisciplines = editingParticipantDisciplines.map((discipline) => ({
         id: discipline.id,
         name: discipline.name,
-        resultType: discipline.resultType, // Ensure all needed properties are included
+        resultType: discipline.resultType,
+        sortingDirection: discipline.sortingDirection,
+        participants: [],
+        results: [],
       }));
 
-      const participantData = {
+      const participantData: Participant = {
+        id: editingParticipant.id,
         name,
         gender,
         dateOfBirth,
         club,
         disciplines: formattedDisciplines,
+        results: editingParticipant.results,
       };
 
       try {

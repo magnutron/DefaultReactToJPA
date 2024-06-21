@@ -126,14 +126,18 @@ export default function ResultComponent() {
 
     const discipline = disciplines.find((d) => d.id === disciplineId);
     if (discipline) {
+      console.log(`Sorting direction: ${discipline.sortingDirection}`);
       filtered = filtered.sort((a, b) => {
+        const aValue = parseFloat(a.resultValue);
+        const bValue = parseFloat(b.resultValue);
         if (discipline.sortingDirection === "ASCENDING") {
-          return parseFloat(a.resultValue) - parseFloat(b.resultValue);
+          return aValue - bValue;
         } else {
-          return parseFloat(b.resultValue) - parseFloat(a.resultValue);
+          return bValue - aValue;
         }
       });
     }
+
     setFilteredResults(filtered);
   };
 

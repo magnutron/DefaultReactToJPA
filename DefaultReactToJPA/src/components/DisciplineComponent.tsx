@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { getAllDisciplines, addDiscipline, deleteDiscipline, editDiscipline, Discipline } from "../service/apiFacade";
-import ParticipantComponent from "./ParticipantComponent"; // Ensure this is imported correctly
 
 export default function DisciplineComponent() {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [name, setName] = useState<string>("");
   const [resultType, setResultType] = useState<string>("");
+  const [sortingDirection, setSortingDirection] = useState<string>("ASCENDING"); // Add this state
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
   const [updateParticipants, setUpdateParticipants] = useState<boolean>(false);
 
@@ -15,9 +15,6 @@ export default function DisciplineComponent() {
 
   useEffect(() => {
     if (updateParticipants) {
-      // Trigger a refresh in ParticipantComponent
-      // You might need a global state management or event bus to handle this
-      // This is a simplistic approach
       setUpdateParticipants(false);
     }
   }, [updateParticipants]);
@@ -29,27 +26,29 @@ export default function DisciplineComponent() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (name.trim() === "" || resultType.trim() === "") {
+    if (name.trim() === "" || resultType.trim() === "" || sortingDirection.trim() === "") {
       alert("All fields must be filled");
       return;
     }
     if (editingDiscipline) {
       await saveEditedDiscipline();
     } else {
-      const newDiscipline = await addDiscipline({ name, resultType });
+      const newDiscipline = await addDiscipline({ name, resultType, sortingDirection });
       setDisciplines([...disciplines, newDiscipline]);
       setName("");
       setResultType("");
+      setSortingDirection("ASCENDING");
     }
   };
 
   const saveEditedDiscipline = async () => {
     if (editingDiscipline) {
-      const updatedDiscipline = await editDiscipline(editingDiscipline.id, { name, resultType });
+      const updatedDiscipline = await editDiscipline(editingDiscipline.id, { name, resultType, sortingDirection });
       const updatedDisciplines = disciplines.map((d) => (d.id === updatedDiscipline.id ? updatedDiscipline : d));
       setDisciplines(updatedDisciplines);
       setName("");
       setResultType("");
+      setSortingDirection("ASCENDING");
       setEditingDiscipline(null);
     }
   };
@@ -58,12 +57,13 @@ export default function DisciplineComponent() {
     await deleteDiscipline(id);
     const updatedDisciplines = disciplines.filter((discipline) => discipline.id !== id);
     setDisciplines(updatedDisciplines);
-    setUpdateParticipants(true); // Trigger participant update
+    setUpdateParticipants(true);
   };
 
   const handleEdit = (discipline: Discipline) => {
     setName(discipline.name);
     setResultType(discipline.resultType);
+    setSortingDirection(discipline.sortingDirection); // Include sortingDirection
     setEditingDiscipline(discipline);
   };
 
@@ -71,14 +71,17 @@ export default function DisciplineComponent() {
     setEditingDiscipline(null);
     setName("");
     setResultType("");
+    setSortingDirection("ASCENDING");
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === "name") {
       setName(value);
     } else if (name === "resultType") {
       setResultType(value);
+    } else if (name === "sortingDirection") {
+      setSortingDirection(value);
     }
   };
 
@@ -91,6 +94,7 @@ export default function DisciplineComponent() {
             <tr>
               <th className="text-left py-2 px-4">Name</th>
               <th className="text-left py-2 px-4">Result Type</th>
+              <th className="text-left py-2 px-4">Sorting Direction</th>
               <th className="py-2 px-4">Actions</th>
             </tr>
           </thead>
@@ -109,6 +113,16 @@ export default function DisciplineComponent() {
                     <input type="text" name="resultType" value={resultType} onChange={handleInputChange} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
                   ) : (
                     discipline.resultType
+                  )}
+                </td>
+                <td className="border px-4 py-2">
+                  {editingDiscipline?.id === discipline.id ? (
+                    <select name="sortingDirection" value={sortingDirection} onChange={handleInputChange} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                      <option value="ASCENDING">ASCENDING</option>
+                      <option value="DESCENDING">DESCENDING</option>
+                    </select>
+                  ) : (
+                    discipline.sortingDirection
                   )}
                 </td>
                 <td className="border px-4 py-2">
@@ -140,6 +154,12 @@ export default function DisciplineComponent() {
               </td>
               <td className="border px-4 py-2">
                 <input type="text" name="resultType" value={resultType} onChange={handleInputChange} placeholder="Result Type" className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+              </td>
+              <td className="border px-4 py-2">
+                <select name="sortingDirection" value={sortingDirection} onChange={handleInputChange} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                  <option value="ASCENDING">ASCENDING</option>
+                  <option value="DESCENDING">DESCENDING</option>
+                </select>
               </td>
               <td className="border px-4 py-2">
                 <button type="submit" onClick={handleSubmit} className="bg-green-500 text-white px-4 py-2 rounded">

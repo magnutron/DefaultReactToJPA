@@ -99,6 +99,7 @@ export async function deleteDiscipline(id: number) {
 }
 
 export async function editDiscipline(id: number, discipline: Omit<Discipline, "id" | "participants" | "results">) {
+  console.log(discipline);
   const res = await fetch(`${endpoint}/disciplines/${id}`, {
     method: "PUT",
     body: JSON.stringify(discipline),
