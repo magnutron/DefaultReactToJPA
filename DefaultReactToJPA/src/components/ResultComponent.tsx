@@ -10,6 +10,7 @@ export default function ResultComponent() {
   const [resultValue, setResultValue] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [editingResult, setEditingResult] = useState<Result | null>(null);
+  const [filteredResults, setFilteredResults] = useState<Result[]>([]);
 
   useEffect(() => {
     fetchResults();
@@ -20,6 +21,7 @@ export default function ResultComponent() {
   const fetchResults = async () => {
     const fetchedResults = await getAllResults();
     setResults(fetchedResults);
+    setFilteredResults(fetchedResults); // Initialize filtered results
   };
 
   const fetchParticipants = async () => {
@@ -74,10 +76,33 @@ export default function ResultComponent() {
     setEditingResult(result);
   };
 
+  const filterResultsByDiscipline = (disciplineId: number) => {
+    const discipline = disciplines.find((d) => d.id === disciplineId);
+    const filtered = results.filter((result) => result.discipline.id === disciplineId);
+
+    if (discipline && discipline.sortingDirection === "ASCENDING") {
+      filtered.sort((a, b) => parseFloat(a.resultValue) - parseFloat(b.resultValue));
+    } else if (discipline && discipline.sortingDirection === "DESCENDING") {
+      filtered.sort((a, b) => parseFloat(b.resultValue) - parseFloat(a.resultValue));
+    }
+
+    setFilteredResults(filtered);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto p-4">
         <h1 className="text-4xl font-bold mb-4">Results</h1>
+        <div className="flex flex-wrap mb-4">
+          {disciplines.map((discipline) => (
+            <button key={discipline.id} onClick={() => filterResultsByDiscipline(discipline.id)} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+              {discipline.name}
+            </button>
+          ))}
+          <button onClick={() => setFilteredResults(results)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            Clear Filter
+          </button>
+        </div>
         <table className="min-w-full bg-gray-800 text-white mb-4">
           <thead>
             <tr>
@@ -90,7 +115,7 @@ export default function ResultComponent() {
             </tr>
           </thead>
           <tbody>
-            {results.map((result) => (
+            {filteredResults.map((result) => (
               <tr key={result.id}>
                 <td className="border px-4 py-2">{result.participant.name}</td>
                 <td className="border px-4 py-2">{result.discipline.name}</td>
