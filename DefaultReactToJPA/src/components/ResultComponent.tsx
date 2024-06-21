@@ -11,6 +11,8 @@ export default function ResultComponent() {
   const [date, setDate] = useState<string>("");
   const [editingResult, setEditingResult] = useState<Result | null>(null);
   const [filteredResults, setFilteredResults] = useState<Result[]>([]);
+  const [genderFilter, setGenderFilter] = useState<string>("F/M");
+  const [ageGroupFilter, setAgeGroupFilter] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -21,7 +23,7 @@ export default function ResultComponent() {
       if (fetchedDisciplines.length > 0) {
         const firstDisciplineId = fetchedDisciplines[0].id;
         setSelectedDiscipline(firstDisciplineId);
-        filterResultsByDiscipline(fetchedResults, firstDisciplineId, fetchedDisciplines[0].sortingDirection);
+        filterResults(fetchedResults, firstDisciplineId, "F/M", null);
       }
     };
     initializeData();
@@ -62,16 +64,16 @@ export default function ResultComponent() {
       const updatedResult = await editResult(editingResult.id, resultData);
       const updatedResults = results.map((r) => (r.id === updatedResult.id ? updatedResult : r));
       setResults(updatedResults);
-      filterResultsByDiscipline(updatedResults, selectedDiscipline!);
+      filterResults(updatedResults, selectedDiscipline!, genderFilter, ageGroupFilter);
     } else {
-      const newResult = await addResult(resultData);
-      const updatedResults = [...results, newResult];
+      await addResult(resultData);
+      const updatedResults = await fetchResults(); // Refetch results to ensure consistency
       setResults(updatedResults);
-      filterResultsByDiscipline(updatedResults, selectedDiscipline!);
+      filterResults(updatedResults, selectedDiscipline!, genderFilter, ageGroupFilter);
     }
 
     setSelectedParticipant(null);
-    setSelectedDiscipline(null);
+    setSelectedDiscipline(selectedDiscipline); // Ensure the selected discipline is preserved
     setResultValue("");
     setDate("");
     setEditingResult(null);
@@ -79,9 +81,9 @@ export default function ResultComponent() {
 
   const handleDelete = async (id: number) => {
     await deleteResult(id);
-    const updatedResults = results.filter((result) => result.id !== id);
+    const updatedResults = await fetchResults(); // Refetch results to ensure consistency
     setResults(updatedResults);
-    filterResultsByDiscipline(updatedResults, selectedDiscipline!);
+    filterResults(updatedResults, selectedDiscipline!, genderFilter, ageGroupFilter);
   };
 
   const handleEdit = (result: Result) => {
@@ -92,22 +94,62 @@ export default function ResultComponent() {
     setEditingResult(result);
   };
 
-  const filterResultsByDiscipline = (allResults: Result[], disciplineId: number, sortingDirection: string) => {
+  const calculateAgeAtResult = (dateOfBirth: string, resultDate: string) => {
+    const birthDate = new Date(dateOfBirth);
+    const resultDateObj = new Date(resultDate);
+    let age = resultDateObj.getFullYear() - birthDate.getFullYear();
+    const monthDifference = resultDateObj.getMonth() - birthDate.getMonth();
+    if (monthDifference < 0 || (monthDifference === 0 && resultDateObj.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const filterResults = (allResults: Result[], disciplineId: number, gender: string, ageGroup: string | null) => {
     let filtered = allResults.filter((result) => result.discipline.id === disciplineId);
-    filtered = filtered.sort((a, b) => {
-      if (sortingDirection === "ASCENDING") {
-        return parseFloat(a.resultValue) - parseFloat(b.resultValue);
-      } else {
-        return parseFloat(b.resultValue) - parseFloat(a.resultValue);
-      }
-    });
+
+    if (gender !== "F/M") {
+      filtered = filtered.filter((result) => result.participant.gender === (gender === "M" ? "Male" : "Female"));
+    }
+
+    if (ageGroup) {
+      filtered = filtered.filter((result) => {
+        const age = calculateAgeAtResult(result.participant.dateOfBirth, result.date);
+        if (ageGroup === "Children") return age >= 6 && age <= 9;
+        if (ageGroup === "Young") return age >= 10 && age <= 13;
+        if (ageGroup === "Junior") return age >= 14 && age <= 22;
+        if (ageGroup === "Adult") return age >= 23 && age <= 40;
+        if (ageGroup === "Senior") return age >= 41;
+        return false;
+      });
+    }
+
+    const discipline = disciplines.find((d) => d.id === disciplineId);
+    if (discipline) {
+      filtered = filtered.sort((a, b) => {
+        if (discipline.sortingDirection === "ASCENDING") {
+          return parseFloat(a.resultValue) - parseFloat(b.resultValue);
+        } else {
+          return parseFloat(b.resultValue) - parseFloat(a.resultValue);
+        }
+      });
+    }
     setFilteredResults(filtered);
   };
 
   const handleDisciplineClick = (disciplineId: number) => {
-    const selectedDiscipline = disciplines.find((d) => d.id === disciplineId);
     setSelectedDiscipline(disciplineId);
-    filterResultsByDiscipline(results, disciplineId, selectedDiscipline?.sortingDirection || "DESCENDING");
+    filterResults(results, disciplineId, genderFilter, ageGroupFilter);
+  };
+
+  const handleGenderFilterClick = (gender: string) => {
+    setGenderFilter(gender);
+    filterResults(results, selectedDiscipline!, gender, ageGroupFilter);
+  };
+
+  const handleAgeGroupFilterClick = (ageGroup: string | null) => {
+    setAgeGroupFilter(ageGroup);
+    filterResults(results, selectedDiscipline!, genderFilter, ageGroup);
   };
 
   const getSelectedParticipantGender = () => {
@@ -129,6 +171,37 @@ export default function ResultComponent() {
               {discipline.name}
             </button>
           ))}
+        </div>
+        <div className="flex flex-wrap mb-4">
+          <button onClick={() => handleGenderFilterClick("F/M")} className={`font-bold py-2 px-4 rounded mr-2 ${genderFilter === "F/M" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            F/M
+          </button>
+          <button onClick={() => handleGenderFilterClick("M")} className={`font-bold py-2 px-4 rounded mr-2 ${genderFilter === "M" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            M
+          </button>
+          <button onClick={() => handleGenderFilterClick("F")} className={`font-bold py-2 px-4 rounded mr-2 ${genderFilter === "F" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            F
+          </button>
+        </div>
+        <div className="flex flex-wrap mb-4">
+          <button onClick={() => handleAgeGroupFilterClick(null)} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === null ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            All
+          </button>
+          <button onClick={() => handleAgeGroupFilterClick("Children")} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === "Children" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            Children (6-9)
+          </button>
+          <button onClick={() => handleAgeGroupFilterClick("Young")} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === "Young" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            Young (10-13)
+          </button>
+          <button onClick={() => handleAgeGroupFilterClick("Junior")} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === "Junior" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            Junior (14-22)
+          </button>
+          <button onClick={() => handleAgeGroupFilterClick("Adult")} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === "Adult" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            Adult (23-40)
+          </button>
+          <button onClick={() => handleAgeGroupFilterClick("Senior")} className={`font-bold py-2 px-4 rounded mr-2 ${ageGroupFilter === "Senior" ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}>
+            Senior (41+)
+          </button>
         </div>
         <table className="min-w-full bg-gray-800 text-white mb-4">
           <thead>
