@@ -13,15 +13,24 @@ export default function ResultComponent() {
   const [filteredResults, setFilteredResults] = useState<Result[]>([]);
 
   useEffect(() => {
-    fetchResults();
-    fetchParticipants();
-    fetchDisciplines();
+    const initializeData = async () => {
+      await fetchParticipants();
+      const fetchedDisciplines = await fetchDisciplines();
+      const fetchedResults = await fetchResults();
+
+      if (fetchedDisciplines.length > 0) {
+        const firstDisciplineId = fetchedDisciplines[0].id;
+        setSelectedDiscipline(firstDisciplineId);
+        filterResultsByDiscipline(fetchedResults, firstDisciplineId, fetchedDisciplines[0].sortingDirection);
+      }
+    };
+    initializeData();
   }, []);
 
   const fetchResults = async () => {
     const fetchedResults = await getAllResults();
     setResults(fetchedResults);
-    setFilteredResults(fetchedResults); // Initialize filtered results
+    return fetchedResults;
   };
 
   const fetchParticipants = async () => {
@@ -32,6 +41,7 @@ export default function ResultComponent() {
   const fetchDisciplines = async () => {
     const fetchedDisciplines = await getAllDisciplines();
     setDisciplines(fetchedDisciplines);
+    return fetchedDisciplines;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -50,10 +60,14 @@ export default function ResultComponent() {
 
     if (editingResult) {
       const updatedResult = await editResult(editingResult.id, resultData);
-      setResults(results.map((r) => (r.id === updatedResult.id ? updatedResult : r)));
+      const updatedResults = results.map((r) => (r.id === updatedResult.id ? updatedResult : r));
+      setResults(updatedResults);
+      filterResultsByDiscipline(updatedResults, selectedDiscipline!);
     } else {
       const newResult = await addResult(resultData);
-      setResults([...results, newResult]);
+      const updatedResults = [...results, newResult];
+      setResults(updatedResults);
+      filterResultsByDiscipline(updatedResults, selectedDiscipline!);
     }
 
     setSelectedParticipant(null);
@@ -65,7 +79,9 @@ export default function ResultComponent() {
 
   const handleDelete = async (id: number) => {
     await deleteResult(id);
-    setResults(results.filter((result) => result.id !== id));
+    const updatedResults = results.filter((result) => result.id !== id);
+    setResults(updatedResults);
+    filterResultsByDiscipline(updatedResults, selectedDiscipline!);
   };
 
   const handleEdit = (result: Result) => {
@@ -76,17 +92,27 @@ export default function ResultComponent() {
     setEditingResult(result);
   };
 
-  const filterResultsByDiscipline = (disciplineId: number) => {
-    const discipline = disciplines.find((d) => d.id === disciplineId);
-    const filtered = results.filter((result) => result.discipline.id === disciplineId);
-
-    if (discipline && discipline.sortingDirection === "ASCENDING") {
-      filtered.sort((a, b) => parseFloat(a.resultValue) - parseFloat(b.resultValue));
-    } else if (discipline && discipline.sortingDirection === "DESCENDING") {
-      filtered.sort((a, b) => parseFloat(b.resultValue) - parseFloat(a.resultValue));
-    }
-
+  const filterResultsByDiscipline = (allResults: Result[], disciplineId: number, sortingDirection: string) => {
+    let filtered = allResults.filter((result) => result.discipline.id === disciplineId);
+    filtered = filtered.sort((a, b) => {
+      if (sortingDirection === "ASCENDING") {
+        return parseFloat(a.resultValue) - parseFloat(b.resultValue);
+      } else {
+        return parseFloat(b.resultValue) - parseFloat(a.resultValue);
+      }
+    });
     setFilteredResults(filtered);
+  };
+
+  const handleDisciplineClick = (disciplineId: number) => {
+    const selectedDiscipline = disciplines.find((d) => d.id === disciplineId);
+    setSelectedDiscipline(disciplineId);
+    filterResultsByDiscipline(results, disciplineId, selectedDiscipline?.sortingDirection || "DESCENDING");
+  };
+
+  const getSelectedParticipantGender = () => {
+    const participant = participants.find((p) => p.id === selectedParticipant);
+    return participant ? participant.gender : "";
   };
 
   return (
@@ -95,17 +121,19 @@ export default function ResultComponent() {
         <h1 className="text-4xl font-bold mb-4">Results</h1>
         <div className="flex flex-wrap mb-4">
           {disciplines.map((discipline) => (
-            <button key={discipline.id} onClick={() => filterResultsByDiscipline(discipline.id)} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+            <button
+              key={discipline.id}
+              onClick={() => handleDisciplineClick(discipline.id)}
+              className={`font-bold py-2 px-4 rounded mr-2 ${selectedDiscipline === discipline.id ? "bg-blue-700" : "bg-blue-500 hover:bg-blue-700 text-white"}`}
+            >
               {discipline.name}
             </button>
           ))}
-          <button onClick={() => setFilteredResults(results)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-            Clear Filter
-          </button>
         </div>
         <table className="min-w-full bg-gray-800 text-white mb-4">
           <thead>
             <tr>
+              <th className="text-left py-2 px-4">Gender</th>
               <th className="text-left py-2 px-4">Participant</th>
               <th className="text-left py-2 px-4">Discipline</th>
               <th className="text-left py-2 px-4">Result</th>
@@ -117,6 +145,7 @@ export default function ResultComponent() {
           <tbody>
             {filteredResults.map((result) => (
               <tr key={result.id}>
+                <td className="border px-4 py-2">{result.participant.gender}</td>
                 <td className="border px-4 py-2">{result.participant.name}</td>
                 <td className="border px-4 py-2">{result.discipline.name}</td>
                 <td className="border px-4 py-2">{result.resultValue}</td>
@@ -135,6 +164,9 @@ export default function ResultComponent() {
               </tr>
             ))}
             <tr>
+              <td className="border px-4 py-2">
+                <input type="text" value={getSelectedParticipantGender()} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+              </td>
               <td className="border px-4 py-2">
                 <select value={selectedParticipant ?? ""} onChange={(e) => setSelectedParticipant(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
                   <option value="" disabled>

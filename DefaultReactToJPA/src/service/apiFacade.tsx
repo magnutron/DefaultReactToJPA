@@ -15,6 +15,7 @@ export interface Discipline {
   id: number;
   name: string;
   resultType: string;
+  sortingDirection: string;
   participants: Participant[];
   results: Result[];
 }
