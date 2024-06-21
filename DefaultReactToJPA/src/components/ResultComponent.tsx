@@ -65,6 +65,7 @@ export default function ResultComponent() {
       const updatedResults = results.map((r) => (r.id === updatedResult.id ? updatedResult : r));
       setResults(updatedResults);
       filterResults(updatedResults, selectedDiscipline!, genderFilter, ageGroupFilter);
+      setEditingResult(null); // Clear editing state
     } else {
       await addResult(resultData);
       const updatedResults = await fetchResults(); // Refetch results to ensure consistency
@@ -76,7 +77,6 @@ export default function ResultComponent() {
     setSelectedDiscipline(selectedDiscipline); // Ensure the selected discipline is preserved
     setResultValue("");
     setDate("");
-    setEditingResult(null);
   };
 
   const handleDelete = async (id: number) => {
@@ -87,11 +87,11 @@ export default function ResultComponent() {
   };
 
   const handleEdit = (result: Result) => {
+    setEditingResult(result);
     setSelectedParticipant(result.participant.id);
     setSelectedDiscipline(result.discipline.id);
     setResultValue(result.resultValue);
     setDate(result.date);
-    setEditingResult(result);
   };
 
   const calculateAgeAtResult = (dateOfBirth: string, resultDate: string) => {
@@ -218,67 +218,117 @@ export default function ResultComponent() {
           <tbody>
             {filteredResults.map((result) => (
               <tr key={result.id}>
-                <td className="border px-4 py-2">{result.participant.gender}</td>
-                <td className="border px-4 py-2">{result.participant.name}</td>
-                <td className="border px-4 py-2">{result.discipline.name}</td>
-                <td className="border px-4 py-2">{result.resultValue}</td>
-                <td className="border px-4 py-2">{result.discipline.resultType}</td>
-                <td className="border px-4 py-2">{new Date(result.date).toLocaleDateString()}</td>
-                <td className="border px-4 py-2">
-                  <div className="flex space-x-2">
-                    <button onClick={() => handleEdit(result)} className="bg-blue-500 text-white px-2 py-1 rounded">
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(result.id)} className="bg-red-500 text-white px-2 py-1 rounded">
-                      Delete
-                    </button>
-                  </div>
-                </td>
+                {editingResult && editingResult.id === result.id ? (
+                  <>
+                    <td className="border px-4 py-2">
+                      <input type="text" value={getSelectedParticipantGender()} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                    </td>
+                    <td className="border px-4 py-2">
+                      <select value={selectedParticipant ?? ""} onChange={(e) => setSelectedParticipant(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                        <option value="" disabled>
+                          Select Participant
+                        </option>
+                        {participants.map((participant) => (
+                          <option key={participant.id} value={participant.id}>
+                            {participant.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="border px-4 py-2">
+                      <select value={selectedDiscipline ?? ""} onChange={(e) => setSelectedDiscipline(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                        <option value="" disabled>
+                          Select Discipline
+                        </option>
+                        {disciplines.map((discipline) => (
+                          <option key={discipline.id} value={discipline.id}>
+                            {discipline.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="border px-4 py-2">
+                      <input type="text" value={resultValue} onChange={(e) => setResultValue(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" placeholder="Result Value" />
+                    </td>
+                    <td className="border px-4 py-2">
+                      <input type="text" value={disciplines.find((d) => d.id === selectedDiscipline)?.resultType ?? ""} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                    </td>
+                    <td className="border px-4 py-2">
+                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                    </td>
+                    <td className="border px-4 py-2">
+                      <button onClick={handleSubmit} className="bg-green-500 text-white px-4 py-2 rounded">
+                        Save
+                      </button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="border px-4 py-2">{result.participant.gender}</td>
+                    <td className="border px-4 py-2">{result.participant.name}</td>
+                    <td className="border px-4 py-2">{result.discipline.name}</td>
+                    <td className="border px-4 py-2">{result.resultValue}</td>
+                    <td className="border px-4 py-2">{result.discipline.resultType}</td>
+                    <td className="border px-4 py-2">{new Date(result.date).toLocaleDateString()}</td>
+                    <td className="border px-4 py-2">
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleEdit(result)} className="bg-blue-500 text-white px-2 py-1 rounded">
+                          Edit
+                        </button>
+                        <button onClick={() => handleDelete(result.id)} className="bg-red-500 text-white px-2 py-1 rounded">
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
-            <tr>
-              <td className="border px-4 py-2">
-                <input type="text" value={getSelectedParticipantGender()} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
-              </td>
-              <td className="border px-4 py-2">
-                <select value={selectedParticipant ?? ""} onChange={(e) => setSelectedParticipant(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
-                  <option value="" disabled>
-                    Select Participant
-                  </option>
-                  {participants.map((participant) => (
-                    <option key={participant.id} value={participant.id}>
-                      {participant.name}
+            {!editingResult && (
+              <tr>
+                <td className="border px-4 py-2">
+                  <input type="text" value={getSelectedParticipantGender()} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                </td>
+                <td className="border px-4 py-2">
+                  <select value={selectedParticipant ?? ""} onChange={(e) => setSelectedParticipant(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                    <option value="" disabled>
+                      Select Participant
                     </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-4 py-2">
-                <select value={selectedDiscipline ?? ""} onChange={(e) => setSelectedDiscipline(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
-                  <option value="" disabled>
-                    Select Discipline
-                  </option>
-                  {disciplines.map((discipline) => (
-                    <option key={discipline.id} value={discipline.id}>
-                      {discipline.name}
+                    {participants.map((participant) => (
+                      <option key={participant.id} value={participant.id}>
+                        {participant.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="border px-4 py-2">
+                  <select value={selectedDiscipline ?? ""} onChange={(e) => setSelectedDiscipline(Number(e.target.value))} className="border rounded px-2 py-1 bg-gray-800 text-white w-full">
+                    <option value="" disabled>
+                      Select Discipline
                     </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-4 py-2">
-                <input type="text" value={resultValue} onChange={(e) => setResultValue(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" placeholder="Result Value" />
-              </td>
-              <td className="border px-4 py-2">
-                <input type="text" value={disciplines.find((d) => d.id === selectedDiscipline)?.resultType ?? ""} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
-              </td>
-              <td className="border px-4 py-2">
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
-              </td>
-              <td className="border px-4 py-2">
-                <button onClick={handleSubmit} className="bg-green-500 text-white px-4 py-2 rounded">
-                  {editingResult ? "Save Result" : "Add Result"}
-                </button>
-              </td>
-            </tr>
+                    {disciplines.map((discipline) => (
+                      <option key={discipline.id} value={discipline.id}>
+                        {discipline.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="border px-4 py-2">
+                  <input type="text" value={resultValue} onChange={(e) => setResultValue(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" placeholder="Result Value" />
+                </td>
+                <td className="border px-4 py-2">
+                  <input type="text" value={disciplines.find((d) => d.id === selectedDiscipline)?.resultType ?? ""} disabled className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                </td>
+                <td className="border px-4 py-2">
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded px-2 py-1 bg-gray-800 text-white w-full" />
+                </td>
+                <td className="border px-4 py-2">
+                  <button onClick={handleSubmit} className="bg-green-500 text-white px-4 py-2 rounded">
+                    Add Result
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
