@@ -87,6 +87,7 @@ export default function ParticipantComponent() {
   };
 
   const handleEdit = (participant: Participant) => {
+    console.log(participant);
     setEditingParticipant(participant);
     setName(participant.name);
     setGender(participant.gender);
