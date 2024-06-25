@@ -104,8 +104,6 @@ export default function ParticipantComponent() {
         name: discipline.name,
         resultType: discipline.resultType,
         sortingDirection: discipline.sortingDirection,
-        participants: [],
-        results: [],
       }));
 
       const participantData: Participant = {
@@ -115,10 +113,10 @@ export default function ParticipantComponent() {
         dateOfBirth,
         club,
         disciplines: formattedDisciplines,
-        results: editingParticipant.results,
       };
 
       try {
+        console.log(participantData);
         const updatedParticipant = await editParticipant(editingParticipant.id, participantData);
         // Update the participants list with the updated data
         setParticipants((prevParticipants) => prevParticipants.map((p) => (p.id === updatedParticipant.id ? updatedParticipant : p)));
